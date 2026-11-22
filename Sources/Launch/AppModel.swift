@@ -36,7 +36,7 @@ final class AppModel: ObservableObject {
     var onDockUpdateEnded: (() -> Void)?
 
     private var runningBundleIdentifiers: Set<String> = []
-    private let customOrderKey = "customAppOrder.v1"
+    private let appOrderKey = "customAppOrder.v1"
 
     func isRunning(_ app: ApplicationItem) -> Bool {
         guard let bundleIdentifier = app.bundleIdentifier else { return false }
@@ -54,7 +54,7 @@ final class AppModel: ObservableObject {
             }
             return $0.addedAt > $1.addedAt
         }
-        apps = applySavedOrder(to: discovered)
+        apps = reconcileOrder(discovered)
     }
 
     func beginDragging(_ app: ApplicationItem) {
@@ -136,7 +136,7 @@ final class AppModel: ObservableObject {
         }
 
         if apps.map(\.id) != previousOrder {
-            saveCustomOrder()
+            saveOrder(apps)
         }
         cancelDragging()
         DragAutoScroller.shared.stop()
@@ -194,11 +194,10 @@ final class AppModel: ObservableObject {
         NSWorkspace.shared.activateFileViewerSelecting([app.url])
     }
 
-    private func applySavedOrder(to sortedByDate: [ApplicationItem]) -> [ApplicationItem] {
-        guard
-            let savedOrder = UserDefaults.standard.stringArray(forKey: customOrderKey),
-            !savedOrder.isEmpty
-        else {
+    private func reconcileOrder(_ sortedByDate: [ApplicationItem]) -> [ApplicationItem] {
+        guard let savedOrder = UserDefaults.standard.stringArray(forKey: appOrderKey),
+              !savedOrder.isEmpty else {
+            saveOrder(sortedByDate)
             return sortedByDate
         }
 
@@ -226,11 +225,13 @@ final class AppModel: ObservableObject {
         let savedApps = sortedByDate
             .filter { savedPosition(for: $0) != nil }
             .sorted { savedPosition(for: $0)! < savedPosition(for: $1)! }
-        return newApps + savedApps
+        let orderedApps = newApps + savedApps
+        saveOrder(orderedApps)
+        return orderedApps
     }
 
-    private func saveCustomOrder() {
-        UserDefaults.standard.set(apps.map(\.id), forKey: customOrderKey)
+    private func saveOrder(_ orderedApps: [ApplicationItem]) {
+        UserDefaults.standard.set(orderedApps.map(\.id), forKey: appOrderKey)
     }
 
     private func cancelDragging() {
@@ -347,7 +348,7 @@ enum AppCatalog {
         return icons
     }
 
-    static func addedDate(for url: URL) -> Date {
+    private static func addedDate(for url: URL) -> Date {
         let values = try? url.resourceValues(
             forKeys: [.addedToDirectoryDateKey, .creationDateKey, .contentModificationDateKey]
         )

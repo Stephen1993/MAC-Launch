@@ -8,11 +8,14 @@
 
 ## 下载
 
-需要 macOS 14 或更高版本，发布包同时支持 Intel 和 Apple Silicon。
+需要 macOS 14 或更高版本。根据 Mac 芯片下载对应版本：
 
-[下载最新版本](https://github.com/Stephen1993/MAC-Launch/releases/latest)
+- Apple Silicon（M 系列）：`Launch-1.0.0-arm64.zip`
+- Intel Mac：`Launch-1.0.0-x86_64.zip`
 
-解压后将 `Launch.app` 拖入“应用程序”目录。当前构建使用本地临时签名，未经过 Apple 公证；如果首次启动被 macOS 阻止，请在 Finder 中右键 App，选择“打开”，再确认一次。
+[前往 Releases 下载](https://github.com/Stephen1993/MAC-Launch/releases/latest)
+
+解压后将 App 拖入“应用程序”目录。当前构建使用本地临时签名，未经过 Apple 公证；如果首次启动被 macOS 阻止，请在 Finder 中右键 App，选择“打开”，再确认一次。
 
 ## 功能
 
@@ -27,10 +30,16 @@
 
 需要 macOS 14+ 和 Swift 6 工具链（Command Line Tools 即可）。
 
+构建脚本会生成两个独立的单架构版本：
+
+- `dist/Launch-arm64.app`
+- `dist/Launch-x86_64.app`
+
 ```bash
 chmod +x scripts/build_app.sh
 ./scripts/build_app.sh
-open dist/Launch.app
+open dist/Launch-arm64.app   # Apple Silicon
+open dist/Launch-x86_64.app  # Intel Mac
 ```
 
 未手动排序时，每次启动直接读取系统文件元数据；只有手动拖拽后才写入自定义顺序。

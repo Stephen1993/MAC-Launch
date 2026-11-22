@@ -8,31 +8,6 @@ mkdir -p "$ROOT/.build/module-cache" "$ROOT/.build/clang-module-cache"
 export CLANG_MODULE_CACHE_PATH="$ROOT/.build/clang-module-cache"
 export SWIFTPM_MODULECACHE_OVERRIDE="$ROOT/.build/module-cache"
 
-BINARIES=()
-for ARCH in arm64 x86_64; do
-  TRIPLE="$ARCH-apple-macosx14.0"
-  SCRATCH="$ROOT/.build/$ARCH"
-  BIN_DIR="$(
-    swift build \
-      -c release \
-      --triple "$TRIPLE" \
-      --scratch-path "$SCRATCH" \
-      --show-bin-path
-  )"
-  swift build \
-    -c release \
-    --triple "$TRIPLE" \
-    --scratch-path "$SCRATCH" \
-    --disable-sandbox \
-    --cache-path "$ROOT/.build/cache" \
-    --manifest-cache local
-  BINARIES+=("$BIN_DIR/Launch")
-done
-
-UNIVERSAL_BINARY="$ROOT/.build/Launch-universal"
-lipo -create "${BINARIES[@]}" -output "$UNIVERSAL_BINARY"
-strip -x "$UNIVERSAL_BINARY"
-
 ICON_PNG="$ROOT/.build/AppIcon-1024.png"
 ICONSET="$ROOT/.build/AppIcon.iconset"
 ICNS="$ROOT/.build/AppIcon.icns"
@@ -53,16 +28,46 @@ sips -z 512 512 "$ICON_PNG" --out "$ICONSET/icon_512x512.png" >/dev/null
 cp "$ICON_PNG" "$ICONSET/icon_512x512@2x.png"
 swift "$ROOT/scripts/make_icns.swift" "$ICONSET" "$ICNS"
 
-APP="$ROOT/dist/Launch.app"
-rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+build_arch() {
+  local ARCH="$1"
+  local TRIPLE="$ARCH-apple-macosx14.0"
+  local SCRATCH="$ROOT/.build/$ARCH"
+  local BIN_DIR
+  local BINARY="$ROOT/.build/Launch-$ARCH"
+  local APP="$ROOT/dist/Launch-$ARCH.app"
 
-cp "$UNIVERSAL_BINARY" "$APP/Contents/MacOS/Launch"
-cp "$ROOT/Resources/Info.plist" "$APP/Contents/Info.plist"
-cp "$ICNS" "$APP/Contents/Resources/AppIcon.icns"
+  BIN_DIR="$(
+    swift build \
+      -c release \
+      --triple "$TRIPLE" \
+      --scratch-path "$SCRATCH" \
+      --show-bin-path
+  )"
+  swift build \
+    -c release \
+    --triple "$TRIPLE" \
+    --scratch-path "$SCRATCH" \
+    --disable-sandbox \
+    --cache-path "$ROOT/.build/cache" \
+    --manifest-cache local
 
-codesign --force --sign - "$APP" >/dev/null
+  cp "$BIN_DIR/Launch" "$BINARY"
+  strip -x "$BINARY"
+
+  rm -rf "$APP"
+  mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+  cp "$BINARY" "$APP/Contents/MacOS/Launch"
+  cp "$ROOT/Resources/Info.plist" "$APP/Contents/Info.plist"
+  cp "$ICNS" "$APP/Contents/Resources/AppIcon.icns"
+  codesign --force --sign - "$APP" >/dev/null
+  rm -f "$BINARY"
+}
+
+rm -rf "$ROOT/dist/Launch.app"
+build_arch arm64
+build_arch x86_64
+
 rm -rf "$ICONSET" "$ICON_PNG" "$ICNS"
-rm -f "$UNIVERSAL_BINARY"
 
-echo "Built: $APP"
+echo "Built: $ROOT/dist/Launch-arm64.app"
+echo "Built: $ROOT/dist/Launch-x86_64.app"

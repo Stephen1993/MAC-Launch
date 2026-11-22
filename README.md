@@ -10,8 +10,8 @@
 
 需要 macOS 14 或更高版本。根据 Mac 芯片下载对应版本：
 
-- Apple Silicon（M 系列）：`Launch-1.0.2-arm64.zip`
-- Intel Mac：`Launch-1.0.2-x86_64.zip`
+- Apple Silicon（M 系列）：`Launch-1.0.3-arm64.zip`
+- Intel Mac：`Launch-1.0.3-x86_64.zip`
 
 [前往 Releases 下载](https://github.com/Stephen1993/MAC-Launch/releases/latest)
 

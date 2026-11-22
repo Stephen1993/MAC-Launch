@@ -177,17 +177,17 @@ final class AppModel: ObservableObject {
 
     func keepInDock(_ app: ApplicationItem) {
         onDockUpdateBegan?()
-        let success = DockManager.add(app)
-        onDockUpdateEnded?()
+        DockManager.add(app) { [weak self] success in
+            guard let self else { return }
+            self.onDockUpdateEnded?()
 
-        if success {
-            return
+            if !success {
+                self.showError(
+                    title: "无法保留 \(app.name)",
+                    message: "未能修改程序坞设置，请稍后重试。"
+                )
+            }
         }
-
-        showError(
-            title: "无法保留 \(app.name)",
-            message: "未能修改程序坞设置，请稍后重试。"
-        )
     }
 
     func revealInFinder(_ app: ApplicationItem) {
@@ -246,7 +246,7 @@ final class AppModel: ObservableObject {
         )
         return runningApps.first {
             $0.bundleURL?.standardizedFileURL.path == app.url.path
-        } ?? runningApps.first
+        }
     }
 
     private func showError(title: String, message: String) {

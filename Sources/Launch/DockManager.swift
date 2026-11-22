@@ -4,7 +4,16 @@ enum DockManager {
     private static let dockDomain = "com.apple.dock" as CFString
     private static let persistentAppsKey = "persistent-apps" as CFString
 
-    static func add(_ app: ApplicationItem) -> Bool {
+    static func add(_ app: ApplicationItem, completion: @escaping (Bool) -> Void) {
+        DispatchQueue.global(qos: .userInitiated).async {
+            let success = addSynchronously(app)
+            DispatchQueue.main.async {
+                completion(success)
+            }
+        }
+    }
+
+    private static func addSynchronously(_ app: ApplicationItem) -> Bool {
         guard !contains(app) else { return true }
 
         let urlString = app.url.absoluteString.hasSuffix("/")

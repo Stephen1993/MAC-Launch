@@ -1,6 +1,6 @@
 # MAC-Launch
 
-一个精简的 macOS 应用启动器原型，交互参考 LaunchOS，但不包含其源码、图片、图标或品牌资源。
+一个精简的 macOS 应用启动器原型。
 
 <p align="center">
   <img src="docs/launch-preview.png" alt="MAC-Launch 功能预览" width="920">
@@ -16,12 +16,6 @@
 [前往 Releases 下载](https://github.com/Stephen1993/MAC-Launch/releases/latest)
 
 解压后将 App 拖入“应用程序”目录。当前构建使用本地临时签名，未经过 Apple 公证；如果首次启动被 macOS 阻止，请在 Finder 中右键 App，选择“打开”，再确认一次。
-
-源码请直接通过 `git clone` 获取，不再作为下载包提供：
-
-```bash
-git clone https://github.com/Stephen1993/MAC-Launch.git
-```
 
 ## 功能
 

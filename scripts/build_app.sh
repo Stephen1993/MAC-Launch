@@ -8,15 +8,30 @@ mkdir -p "$ROOT/.build/module-cache" "$ROOT/.build/clang-module-cache"
 export CLANG_MODULE_CACHE_PATH="$ROOT/.build/clang-module-cache"
 export SWIFTPM_MODULECACHE_OVERRIDE="$ROOT/.build/module-cache"
 
-swift build \
-  -c release \
-  -debug-info-format none \
-  --enable-experimental-strip-products \
-  --disable-sandbox \
-  --cache-path "$ROOT/.build/cache" \
-  --config-path "$ROOT/.build/config" \
-  --security-path "$ROOT/.build/security" \
-  --manifest-cache local
+BINARIES=()
+for ARCH in arm64 x86_64; do
+  TRIPLE="$ARCH-apple-macosx14.0"
+  SCRATCH="$ROOT/.build/$ARCH"
+  BIN_DIR="$(
+    swift build \
+      -c release \
+      --triple "$TRIPLE" \
+      --scratch-path "$SCRATCH" \
+      --show-bin-path
+  )"
+  swift build \
+    -c release \
+    --triple "$TRIPLE" \
+    --scratch-path "$SCRATCH" \
+    --disable-sandbox \
+    --cache-path "$ROOT/.build/cache" \
+    --manifest-cache local
+  BINARIES+=("$BIN_DIR/Launch")
+done
+
+UNIVERSAL_BINARY="$ROOT/.build/Launch-universal"
+lipo -create "${BINARIES[@]}" -output "$UNIVERSAL_BINARY"
+strip -x "$UNIVERSAL_BINARY"
 
 ICON_PNG="$ROOT/.build/AppIcon-1024.png"
 ICONSET="$ROOT/.build/AppIcon.iconset"
@@ -42,11 +57,12 @@ APP="$ROOT/dist/Launch.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
-cp "$ROOT/.build/release/Launch" "$APP/Contents/MacOS/Launch"
+cp "$UNIVERSAL_BINARY" "$APP/Contents/MacOS/Launch"
 cp "$ROOT/Resources/Info.plist" "$APP/Contents/Info.plist"
 cp "$ICNS" "$APP/Contents/Resources/AppIcon.icns"
 
 codesign --force --sign - "$APP" >/dev/null
 rm -rf "$ICONSET" "$ICON_PNG" "$ICNS"
+rm -f "$UNIVERSAL_BINARY"
 
 echo "Built: $APP"

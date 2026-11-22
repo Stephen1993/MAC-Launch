@@ -4,7 +4,7 @@
 
 ## 下载
 
-需要 macOS 14 或更高版本，当前发布包适用于 Apple Silicon（arm64）。
+需要 macOS 14 或更高版本，发布包同时支持 Intel 和 Apple Silicon。
 
 [下载最新版本](https://github.com/Stephen1993/MAC-Launch/releases/latest)
 

@@ -23,9 +23,6 @@ struct LauncherView: View {
             }
         }
         .frame(minWidth: 680, minHeight: 480)
-        .onExitCommand {
-            NSApp.terminate(nil)
-        }
     }
 
     private var filteredApps: [ApplicationItem] {
@@ -67,6 +64,8 @@ struct LauncherView: View {
                             model.keepInDock(app)
                         } onReveal: {
                             model.revealInFinder(app)
+                        } onUninstall: {
+                            model.uninstall(app)
                         }
                         .onDrag {
                             model.beginDragging(app)
@@ -235,6 +234,7 @@ private struct AppTile: View {
     let onOpen: () -> Void
     let onKeepInDock: () -> Void
     let onReveal: () -> Void
+    let onUninstall: () -> Void
 
     var body: some View {
         VStack(spacing: 10) {
@@ -267,6 +267,10 @@ private struct AppTile: View {
             Button("打开", action: onOpen)
             Button("保留在程序坞", action: onKeepInDock)
             Button("在访达中显示", action: onReveal)
+            if app.canUninstall {
+                Divider()
+                Button("卸载", role: .destructive, action: onUninstall)
+            }
         }
         .overlay {
             GeometryReader { proxy in

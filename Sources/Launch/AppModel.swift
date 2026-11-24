@@ -17,6 +17,12 @@ struct ApplicationItem: Identifiable, Hashable {
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }
+
+    var canUninstall: Bool {
+        let path = url.standardizedFileURL.path
+        return !path.hasPrefix("/System/")
+            && path != Bundle.main.bundleURL.standardizedFileURL.path
+    }
 }
 
 enum DropInsertion: Equatable {
@@ -192,6 +198,35 @@ final class AppModel: ObservableObject {
 
     func revealInFinder(_ app: ApplicationItem) {
         NSWorkspace.shared.activateFileViewerSelecting([app.url])
+    }
+
+    func uninstall(_ app: ApplicationItem) {
+        NSApp.activate(ignoringOtherApps: true)
+        let alert = NSAlert()
+        alert.messageText = "卸载 \(app.name)？"
+        alert.informativeText = "应用会移到废纸篓，仍可从废纸篓恢复。"
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "移到废纸篓")
+        alert.addButton(withTitle: "取消")
+
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+
+        NSWorkspace.shared.recycle([app.url]) { [weak self] recycledURLs, error in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                guard recycledURLs[app.url] != nil else {
+                    self.showError(
+                        title: "无法卸载 \(app.name)",
+                        message: error?.localizedDescription
+                            ?? "未能把应用移到废纸篓，可能没有足够权限。"
+                    )
+                    return
+                }
+
+                self.apps.removeAll { $0.id == app.id }
+                self.saveOrder(self.apps)
+            }
+        }
     }
 
     private func reconcileOrder(_ sortedByDate: [ApplicationItem]) -> [ApplicationItem] {

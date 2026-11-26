@@ -2,7 +2,7 @@ import AppKit
 import Combine
 import Foundation
 
-struct ApplicationItem: Identifiable, Hashable {
+struct ApplicationItem: Identifiable {
     let id: String
     let url: URL
     let name: String
@@ -10,26 +10,25 @@ struct ApplicationItem: Identifiable, Hashable {
     let icon: NSImage
     let addedAt: Date
 
-    static func == (lhs: ApplicationItem, rhs: ApplicationItem) -> Bool {
-        lhs.id == rhs.id
+    var isSystemApp: Bool {
+        let path = url.resolvingSymlinksInPath().standardizedFileURL.path
+        return path.hasPrefix("/System/")
     }
 
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-
-    var isUserApp: Bool {
-        let path = url.standardizedFileURL.path
-        return !path.hasPrefix("/System/")
-            && path != Bundle.main.bundleURL.standardizedFileURL.path
+    var isLaunchSelf: Bool {
+        let selfPath = Bundle.main.bundleURL
+            .resolvingSymlinksInPath()
+            .standardizedFileURL
+            .path
+        return url.resolvingSymlinksInPath().standardizedFileURL.path == selfPath
     }
 
     var canUninstall: Bool {
-        isUserApp
+        !isSystemApp && !isLaunchSelf
     }
 
     var canQuit: Bool {
-        isUserApp && bundleIdentifier != nil
+        !isLaunchSelf && bundleIdentifier != nil
     }
 }
 
@@ -261,29 +260,14 @@ final class AppModel: ObservableObject {
         }
 
         var positions: [String: Int] = [:]
-        var legacyPositions: [String: Int] = [:]
-        for (index, key) in savedOrder.enumerated() {
-            if key.hasPrefix("/") {
-                if positions[key] == nil {
-                    positions[key] = index
-                }
-            } else if legacyPositions[key] == nil {
-                legacyPositions[key] = index
-            }
+        for (index, id) in savedOrder.enumerated() {
+            positions[id] = index
         }
 
-        func savedPosition(for app: ApplicationItem) -> Int? {
-            if let position = positions[app.id] {
-                return position
-            }
-            guard let bundleIdentifier = app.bundleIdentifier else { return nil }
-            return legacyPositions[bundleIdentifier]
-        }
-
-        let newApps = sortedByDate.filter { savedPosition(for: $0) == nil }
+        let newApps = sortedByDate.filter { positions[$0.id] == nil }
         let savedApps = sortedByDate
-            .filter { savedPosition(for: $0) != nil }
-            .sorted { savedPosition(for: $0)! < savedPosition(for: $1)! }
+            .filter { positions[$0.id] != nil }
+            .sorted { positions[$0.id]! < positions[$1.id]! }
         let orderedApps = newApps + savedApps
         saveOrder(orderedApps)
         return orderedApps
@@ -303,9 +287,12 @@ final class AppModel: ObservableObject {
         let runningApps = NSRunningApplication.runningApplications(
             withBundleIdentifier: bundleIdentifier
         )
-        return runningApps.first {
+        if let exact = runningApps.first(where: {
             $0.bundleURL?.standardizedFileURL.path == app.url.path
+        }) {
+            return exact
         }
+        return runningApps.count == 1 ? runningApps.first : nil
     }
 
     private func showError(title: String, message: String) {

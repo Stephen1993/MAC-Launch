@@ -15,10 +15,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller.showWindow(nil)
     }
 
-    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        true
-    }
-
     func applicationShouldHandleReopen(
         _ sender: NSApplication,
         hasVisibleWindows flag: Bool
@@ -82,8 +78,8 @@ final class LauncherWindowController: NSWindowController, NSWindowDelegate {
     }
 
     override func showWindow(_ sender: Any?) {
-        super.showWindow(sender)
         positionOnActiveScreen()
+        super.showWindow(sender)
         window?.makeKeyAndOrderFront(sender)
         NSApp.activate(ignoringOtherApps: true)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
@@ -109,7 +105,8 @@ final class LauncherWindowController: NSWindowController, NSWindowDelegate {
 
     private func terminateAfterResign() {
         guard allowsResignTermination, !isUpdatingDock else { return }
-        DispatchQueue.main.async {
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.allowsResignTermination, !self.isUpdatingDock else { return }
             if NSApp.modalWindow != nil { return }
             NSApp.terminate(nil)
         }

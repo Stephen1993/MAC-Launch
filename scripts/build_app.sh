@@ -63,7 +63,6 @@ build_arch() {
   rm -f "$BINARY"
 }
 
-rm -rf "$ROOT/dist/Launch.app"
 build_arch arm64
 build_arch x86_64
 

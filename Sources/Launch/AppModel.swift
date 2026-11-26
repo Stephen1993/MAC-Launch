@@ -18,10 +18,18 @@ struct ApplicationItem: Identifiable, Hashable {
         hasher.combine(id)
     }
 
-    var canUninstall: Bool {
+    var isUserApp: Bool {
         let path = url.standardizedFileURL.path
         return !path.hasPrefix("/System/")
             && path != Bundle.main.bundleURL.standardizedFileURL.path
+    }
+
+    var canUninstall: Bool {
+        isUserApp
+    }
+
+    var canQuit: Bool {
+        isUserApp && bundleIdentifier != nil
     }
 }
 
@@ -193,6 +201,22 @@ final class AppModel: ObservableObject {
                     message: "未能修改程序坞设置，请稍后重试。"
                 )
             }
+        }
+    }
+
+    func quit(_ app: ApplicationItem) {
+        guard app.canQuit, let running = runningApplication(for: app) else { return }
+        guard running.terminate() else {
+            showError(
+                title: "无法退出 \(app.name)",
+                message: "应用拒绝了退出请求，请稍后重试。"
+            )
+            return
+        }
+
+        if let bundleIdentifier = app.bundleIdentifier {
+            runningBundleIdentifiers.remove(bundleIdentifier)
+            objectWillChange.send()
         }
     }
 

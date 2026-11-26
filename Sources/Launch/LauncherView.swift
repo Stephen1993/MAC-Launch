@@ -60,6 +60,8 @@ struct LauncherView: View {
                             insertionEdge: dropEdge(for: app, in: apps)
                         ) {
                             model.launch(app)
+                        } onQuit: {
+                            model.quit(app)
                         } onKeepInDock: {
                             model.keepInDock(app)
                         } onReveal: {
@@ -232,6 +234,7 @@ private struct AppTile: View {
     let isRunning: Bool
     let insertionEdge: DropIndicatorEdge?
     let onOpen: () -> Void
+    let onQuit: () -> Void
     let onKeepInDock: () -> Void
     let onReveal: () -> Void
     let onUninstall: () -> Void
@@ -265,6 +268,9 @@ private struct AppTile: View {
         .onTapGesture(perform: onOpen)
         .contextMenu {
             Button("打开", action: onOpen)
+            if app.canQuit {
+                Button("退出", action: onQuit)
+            }
             Button("保留在程序坞", action: onKeepInDock)
             Button("在访达中显示", action: onReveal)
             if app.canUninstall {
